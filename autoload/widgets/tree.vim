@@ -12,7 +12,7 @@ let s:keyMaps = {
       \ 'q': { 'action': 'close' },
       \ 'o': { 'action': 'openNode' },
       \ '<enter>': { 'action': 'openNode' },
-      \ 'x': { 'action': 'closeNode' },
+      \ 'x': { 'action': 'closeParentNode' },
       \ 'p': { 'action': 'goToParentNode' },
       \ }
 
@@ -141,17 +141,18 @@ function! s:tree.openNode()
   endif
 endfunction
 
-function! s:tree.closeNode()
+function! s:tree.closeParentNode()
   let node = self.findCurrentNode()
-  if !empty(node) && !node.isLeaf()
-    call node.close()
+  if !empty(node) && has_key(node, '_parent')
+    call node._parent.close()
     call self.render()
+    call s:move_cursor_to_node(node._parent)
   endif
 endfunction
 
 function s:move_cursor_to_node(node)
   call cursor(a:node._lineno, 1)
-  normal! ^2lzz
+  normal! ^2l
 endfunction
 
 function! s:tree.goToParentNode()
@@ -161,18 +162,19 @@ function! s:tree.goToParentNode()
   endif
 endfunction
 
-function! s:tree.getBufName()
+function! s:tree.getWinNum()
   let options = self.options
   if options.global
     let varname = 'g:widgetsTreeBufName'
   else
     let varname = 't:widgetsTreeBufName'
   endif
-  return eval(varname)
-endfunction
 
-function! s:tree.getWinNum()
-  return bufwinnr(self.getBufName())
+  if exists(varname)
+    return bufwinnr(eval(varname))
+  else
+    return -1
+  endif
 endfunction
 
 function! s:tree.isOpen()
